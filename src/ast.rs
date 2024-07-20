@@ -3,11 +3,23 @@
 use std::{collections::HashSet, sync::Arc};
 
 #[derive(Debug, Clone)]
+pub enum UnaryOp {
+    Neg,
+}
+
+#[derive(Debug, Clone)]
+pub enum BinOp {
+    Add,
+    Sub,
+    // Mul,
+    // Div
+}
+
+#[derive(Debug, Clone)]
 pub enum Expr {
     Const(i32),
-    Neg(Arc<Expr>),
-    Add(Arc<Expr>, Arc<Expr>),
-    Sub(Arc<Expr>, Arc<Expr>),
+    UnaryOp(UnaryOp, Arc<Expr>),
+    BinOp(BinOp, Arc<Expr>, Arc<Expr>),
     Var(String),
 }
 
@@ -42,16 +54,16 @@ pub struct Program {
 
 #[cfg(test)]
 mod tests {
-    use super::{Expr, Stmt};
+    use super::{BinOp, Expr, Stmt};
 
     #[test]
     fn builds_simple_add_expr() {
-        Expr::Add(Expr::Const(3).arced(), Expr::Const(4).arced());
+        Expr::BinOp(BinOp::Add, Expr::Const(3).arced(), Expr::Const(4).arced());
     }
 
     #[test]
     fn builds_simple_stmt() {
-        let expr = Expr::Add(Expr::Const(3).arced(), Expr::Const(4).arced());
+        let expr = Expr::BinOp(BinOp::Add, Expr::Const(3).arced(), Expr::Const(4).arced());
 
         Stmt::Let {
             binding: "blah".to_string(),

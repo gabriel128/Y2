@@ -26,26 +26,25 @@ fn remove_complex_exprs(expr: Expr, let_stmts: &mut Vec<Stmt>) -> Expr {
 
     match expr {
         expr if is_atomized_expr(&expr) => expr,
-        Expr::Neg(expr) => {
+        Expr::UnaryOp(op, expr) => {
             let var = atomic_var(expr, let_stmts);
-            Expr::Neg(var.arced())
+            Expr::UnaryOp(op, var.arced())
         }
-        Expr::Add(expr1, expr2) if is_atomized_expr(&expr1) => {
+        Expr::BinOp(op, expr1, expr2) if is_atomized_expr(&expr1) => {
             let var = atomic_var(expr2, let_stmts);
-            Expr::Add(expr1, var.arced())
+            Expr::BinOp(op, expr1, var.arced())
         }
-        Expr::Add(expr1, expr2) if is_atomized_expr(&expr2) => {
+        Expr::BinOp(op, expr1, expr2) if is_atomized_expr(&expr2) => {
             let var = atomic_var(expr1, let_stmts);
-            Expr::Add(var.arced(), expr2)
+            Expr::BinOp(op, var.arced(), expr2)
         }
-        Expr::Add(expr1, expr2) => {
+        Expr::BinOp(op, expr1, expr2) => {
             let var1 = atomic_var(expr1, let_stmts);
             let var2 = atomic_var(expr2, let_stmts);
-            Expr::Add(var1.arced(), var2.arced())
+            Expr::BinOp(op, var1.arced(), var2.arced())
         }
         Expr::Var(_) => todo!(),
         Expr::Const(_) => todo!(),
-        Expr::Sub(_, _) => todo!(),
     }
 }
 
@@ -68,10 +67,8 @@ fn is_atomized_expr(expr: &Expr) -> bool {
     match expr {
         Expr::Const(_) => true,
         Expr::Var(_) => true,
-        Expr::Neg(expr) => is_const_or_var(expr),
-        Expr::Add(expr1, expr2) | Expr::Sub(expr1, expr2) => {
-            is_const_or_var(expr1) && is_const_or_var(expr2)
-        }
+        Expr::UnaryOp(_, expr) => is_const_or_var(expr),
+        Expr::BinOp(_, expr1, expr2) => is_const_or_var(expr1) && is_const_or_var(expr2),
     }
 }
 
