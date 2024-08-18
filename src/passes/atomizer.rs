@@ -15,11 +15,47 @@ use crate::ast::{Expr, Program, Stmt};
 /// =>
 /// let z = 3 + 4; let y = 2 + z; let x = 1 + y
 pub fn atomize_stmts(program: Program) -> crate::Result<Program> {
-    Ok(program)
+    let atomized_stmts = remove_complex_stmts(program.stmts)?;
+    let atomized_program = Program {
+        context: program.context,
+        stmts: atomized_stmts,
+    };
+    Ok(atomized_program)
 }
 
-// Creates let statements out of expressions
-fn remove_complex_exprs(expr: Expr, let_stmts: &mut Vec<Stmt>) -> Expr {
+//
+fn remove_complex_stmts(stmts: Vec<Stmt>) -> crate::Result<Vec<Stmt>> {
+    let mut atomized_stmts = Vec::new();
+
+    for stmt in stmts {
+        let mut new_stmts = remove_complex_expr_from_stmt(stmt)?;
+        atomized_stmts.append(&mut new_stmts);
+    }
+
+    Ok(atomized_stmts)
+}
+
+/// Transform a complex statment (i.e. statements that are not atomic)
+/// into sequential let bindings ending with the originl stmt transformed
+fn remove_complex_expr_from_stmt(stmt: Stmt) -> crate::Result<Vec<Stmt>> {
+    match stmt {
+        Stmt::Let { binding, expr } => {
+            let mut stmts = Vec::new();
+            let last_expr = remove_complex_exprs(expr, &mut stmts);
+            // TODO add local vars
+            stmts.push(Stmt::Let {
+                binding,
+                expr: last_expr,
+            });
+            Ok(stmts)
+        }
+        Stmt::DebugPrint(_) => todo!(),
+        Stmt::Return(_) => todo!(),
+    }
+}
+// Creates let statements out of an expression and return the
+// last expression as a var
+fn remove_complex_exprs(expr: Expr, atomized_stmts: &mut Vec<Stmt>) -> Expr {
     if is_atomized_expr(&expr) {
         return expr;
     }
@@ -27,20 +63,20 @@ fn remove_complex_exprs(expr: Expr, let_stmts: &mut Vec<Stmt>) -> Expr {
     match expr {
         expr if is_atomized_expr(&expr) => expr,
         Expr::UnaryOp(op, expr) => {
-            let var = atomic_var(expr, let_stmts);
+            let var = atomic_var(expr, atomized_stmts);
             Expr::UnaryOp(op, var.arced())
         }
         Expr::BinOp(op, expr1, expr2) if is_atomized_expr(&expr1) => {
-            let var = atomic_var(expr2, let_stmts);
+            let var = atomic_var(expr2, atomized_stmts);
             Expr::BinOp(op, expr1, var.arced())
         }
         Expr::BinOp(op, expr1, expr2) if is_atomized_expr(&expr2) => {
-            let var = atomic_var(expr1, let_stmts);
+            let var = atomic_var(expr1, atomized_stmts);
             Expr::BinOp(op, var.arced(), expr2)
         }
         Expr::BinOp(op, expr1, expr2) => {
-            let var1 = atomic_var(expr1, let_stmts);
-            let var2 = atomic_var(expr2, let_stmts);
+            let var1 = atomic_var(expr1, atomized_stmts);
+            let var2 = atomic_var(expr2, atomized_stmts);
             Expr::BinOp(op, var1.arced(), var2.arced())
         }
         Expr::Var(_) => todo!(),
@@ -49,11 +85,14 @@ fn remove_complex_exprs(expr: Expr, let_stmts: &mut Vec<Stmt>) -> Expr {
 }
 
 /// Returns an atomic var where all the  with all the
-fn atomic_var(expr: Arc<Expr>, let_stmts: &mut Vec<Stmt>) -> Expr {
+fn atomic_var(expr: Arc<Expr>, atomized_stmts: &mut Vec<Stmt>) -> Expr {
+    // TODO
+    // - remove hardcoded var_name
+    // - add local vars
     let var_name = "tmp_0".to_string();
-    let last_expr = remove_complex_exprs((*expr).clone(), let_stmts);
+    let last_expr = remove_complex_exprs((*expr).clone(), atomized_stmts);
 
-    let_stmts.push(Stmt::Let {
+    atomized_stmts.push(Stmt::Let {
         binding: var_name.clone(),
         expr: last_expr,
     });

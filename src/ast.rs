@@ -2,12 +2,12 @@
 
 use std::{collections::HashSet, sync::Arc};
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum UnaryOp {
     Neg,
 }
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum BinOp {
     Add,
     Sub,
@@ -15,7 +15,7 @@ pub enum BinOp {
     // Div
 }
 
-#[derive(Debug, Clone)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Expr {
     Const(i32),
     UnaryOp(UnaryOp, Arc<Expr>),
@@ -29,14 +29,14 @@ impl Expr {
     }
 }
 
-#[derive(Debug)]
+#[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Stmt {
     Let { binding: String, expr: Expr },
     DebugPrint(Expr),
     Return(Expr),
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq, Default)]
 pub struct Context {
     /// Locals Vars are meant to be unique.
     /// But there is no place in the stack ensured
@@ -46,7 +46,7 @@ pub struct Context {
 }
 
 /// A program is a sequence of statements
-#[derive(Debug)]
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Program {
     pub context: Context,
     pub stmts: Vec<Stmt>,

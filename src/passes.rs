@@ -1,1 +1,2 @@
-mod atomizer;
+pub mod atomizer;
+mod tests;
