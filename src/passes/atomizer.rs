@@ -14,7 +14,7 @@ use crate::ast::{Expr, Program, Stmt};
 /// let y = (2 + (3 + 4)); let x = 1 + y
 /// =>
 /// let z = 3 + 4; let y = 2 + z; let x = 1 + y
-pub fn atomize_stmts(program: Program) -> crate::Result<Program> {
+pub fn atomize_program(program: Program) -> crate::Result<Program> {
     let atomized_stmts = remove_complex_stmts(program.stmts)?;
     let atomized_program = Program {
         context: program.context,
@@ -62,29 +62,29 @@ fn remove_complex_exprs(expr: Expr, atomized_stmts: &mut Vec<Stmt>) -> Expr {
 
     match expr {
         expr if is_atomized_expr(&expr) => expr,
-        Expr::UnaryOp(op, expr) => {
+        Expr::UnaryOp(ty, op, expr) => {
             let var = atomic_var(expr, atomized_stmts);
-            Expr::UnaryOp(op, var.arced())
+            Expr::UnaryOp(ty, op, var.arced())
         }
-        Expr::BinOp(op, expr1, expr2) if is_atomized_expr(&expr1) => {
+        Expr::BinOp(ty, op, expr1, expr2) if is_atomized_expr(&expr1) => {
             let var = atomic_var(expr2, atomized_stmts);
-            Expr::BinOp(op, expr1, var.arced())
+            Expr::BinOp(ty, op, expr1, var.arced())
         }
-        Expr::BinOp(op, expr1, expr2) if is_atomized_expr(&expr2) => {
+        Expr::BinOp(ty, op, expr1, expr2) if is_atomized_expr(&expr2) => {
             let var = atomic_var(expr1, atomized_stmts);
-            Expr::BinOp(op, var.arced(), expr2)
+            Expr::BinOp(ty, op, var.arced(), expr2)
         }
-        Expr::BinOp(op, expr1, expr2) => {
+        Expr::BinOp(ty, op, expr1, expr2) => {
             let var1 = atomic_var(expr1, atomized_stmts);
             let var2 = atomic_var(expr2, atomized_stmts);
-            Expr::BinOp(op, var1.arced(), var2.arced())
+            Expr::BinOp(ty, op, var1.arced(), var2.arced())
         }
-        Expr::Var(_) => todo!(),
-        Expr::Const(_) => todo!(),
+        Expr::Var(..) => todo!(),
+        Expr::Const(..) => todo!(),
     }
 }
 
-/// Returns an atomic var where all the  with all the
+/// Returns an atomic var where all the ..
 fn atomic_var(expr: Arc<Expr>, atomized_stmts: &mut Vec<Stmt>) -> Expr {
     // TODO
     // - remove hardcoded var_name
@@ -97,24 +97,16 @@ fn atomic_var(expr: Arc<Expr>, atomized_stmts: &mut Vec<Stmt>) -> Expr {
         expr: last_expr,
     });
 
-    Expr::Var("tmp_0".to_string())
+    Expr::Var(expr.ty().clone(), "tmp_0".to_string())
 }
 
 // If it has been atomized it's means that it can't be atomized
 // further
 fn is_atomized_expr(expr: &Expr) -> bool {
     match expr {
-        Expr::Const(_) => true,
-        Expr::Var(_) => true,
-        Expr::UnaryOp(_, expr) => is_const_or_var(expr),
-        Expr::BinOp(_, expr1, expr2) => is_const_or_var(expr1) && is_const_or_var(expr2),
-    }
-}
-
-fn is_const_or_var(expr: &Expr) -> bool {
-    match expr {
-        Expr::Const(_) => true,
-        Expr::Var(_) => true,
-        _ => false,
+        Expr::Const(..) => true,
+        Expr::Var(..) => true,
+        Expr::UnaryOp(_, _, expr) => expr.is_const_or_var(),
+        Expr::BinOp(_, _, expr1, expr2) => expr1.is_const_or_var() && expr2.is_const_or_var(),
     }
 }

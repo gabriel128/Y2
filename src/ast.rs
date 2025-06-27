@@ -3,6 +3,12 @@
 use std::{collections::HashSet, sync::Arc};
 
 #[derive(PartialEq, Eq, Debug, Clone)]
+pub enum Type {
+    ToInfer,
+    Native,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum UnaryOp {
     Neg,
 }
@@ -11,21 +17,44 @@ pub enum UnaryOp {
 pub enum BinOp {
     Add,
     Sub,
-    // Mul,
-    // Div
+    Mul,
+    Div,
+}
+
+#[derive(PartialEq, Eq, Debug, Clone)]
+pub enum NativeVal {
+    I64(i64),
+    U64(u64),
 }
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum Expr {
-    Const(i32),
-    UnaryOp(UnaryOp, Arc<Expr>),
-    BinOp(BinOp, Arc<Expr>, Arc<Expr>),
-    Var(String),
+    Const(NativeVal),
+    UnaryOp(Type, UnaryOp, Arc<Expr>),
+    BinOp(Type, BinOp, Arc<Expr>, Arc<Expr>),
+    Var(Type, String),
 }
 
 impl Expr {
     pub fn arced(self) -> Arc<Self> {
         Arc::new(self)
+    }
+
+    pub fn ty(&self) -> &Type {
+        match self {
+            Expr::Const(..) => &Type::Native,
+            Expr::UnaryOp(ty, ..) => ty,
+            Expr::BinOp(ty, ..) => ty,
+            Expr::Var(ty, ..) => ty,
+        }
+    }
+
+    pub fn is_const_or_var(&self) -> bool {
+        match self {
+            Expr::Const(..) => true,
+            Expr::Var(..) => true,
+            _ => false,
+        }
     }
 }
 
@@ -54,16 +83,26 @@ pub struct Program {
 
 #[cfg(test)]
 mod tests {
-    use super::{BinOp, Expr, Stmt};
+    use super::{BinOp, Expr, NativeVal, Stmt, Type};
 
     #[test]
     fn builds_simple_add_expr() {
-        Expr::BinOp(BinOp::Add, Expr::Const(3).arced(), Expr::Const(4).arced());
+        Expr::BinOp(
+            Type::ToInfer,
+            BinOp::Add,
+            Expr::Const(NativeVal::U64(3)).arced(),
+            Expr::Const(NativeVal::U64(4)).arced(),
+        );
     }
 
     #[test]
     fn builds_simple_stmt() {
-        let expr = Expr::BinOp(BinOp::Add, Expr::Const(3).arced(), Expr::Const(4).arced());
+        let expr = Expr::BinOp(
+            Type::ToInfer,
+            BinOp::Add,
+            Expr::Const(NativeVal::U64(3)).arced(),
+            Expr::Const(NativeVal::U64(4)).arced(),
+        );
 
         Stmt::Let {
             binding: "blah".to_string(),
