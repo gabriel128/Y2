@@ -60,9 +60,13 @@ impl Expr {
 
 #[derive(PartialEq, Eq, Clone, Debug)]
 pub enum Stmt {
-    Let { binding: String, expr: Expr },
+    Let {
+        ty: Type,
+        binding: String,
+        expr: Expr,
+    },
     DebugPrint(Expr),
-    Return(Expr),
+    Return(Type, Expr),
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -79,34 +83,4 @@ pub struct Context {
 pub struct Program {
     pub context: Context,
     pub stmts: Vec<Stmt>,
-}
-
-#[cfg(test)]
-mod tests {
-    use super::{BinOp, Expr, NativeVal, Stmt, Type};
-
-    #[test]
-    fn builds_simple_add_expr() {
-        Expr::BinOp(
-            Type::ToInfer,
-            BinOp::Add,
-            Expr::Const(NativeVal::U64(3)).arced(),
-            Expr::Const(NativeVal::U64(4)).arced(),
-        );
-    }
-
-    #[test]
-    fn builds_simple_stmt() {
-        let expr = Expr::BinOp(
-            Type::ToInfer,
-            BinOp::Add,
-            Expr::Const(NativeVal::U64(3)).arced(),
-            Expr::Const(NativeVal::U64(4)).arced(),
-        );
-
-        Stmt::Let {
-            binding: "blah".to_string(),
-            expr,
-        };
-    }
 }

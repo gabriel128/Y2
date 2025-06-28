@@ -39,18 +39,19 @@ fn remove_complex_stmts(stmts: Vec<Stmt>) -> crate::Result<Vec<Stmt>> {
 /// into sequential let bindings ending with the originl stmt transformed
 fn remove_complex_expr_from_stmt(stmt: Stmt) -> crate::Result<Vec<Stmt>> {
     match stmt {
-        Stmt::Let { binding, expr } => {
+        Stmt::Let { ty, binding, expr } => {
             let mut stmts = Vec::new();
             let last_expr = remove_complex_exprs(expr, &mut stmts);
             // TODO add local vars
             stmts.push(Stmt::Let {
+                ty,
                 binding,
                 expr: last_expr,
             });
             Ok(stmts)
         }
         Stmt::DebugPrint(_) => todo!(),
-        Stmt::Return(_) => todo!(),
+        Stmt::Return(..) => todo!(),
     }
 }
 // Creates let statements out of an expression and return the
@@ -93,6 +94,7 @@ fn atomic_var(expr: Arc<Expr>, atomized_stmts: &mut Vec<Stmt>) -> Expr {
     let last_expr = remove_complex_exprs((*expr).clone(), atomized_stmts);
 
     atomized_stmts.push(Stmt::Let {
+        ty: expr.ty().clone(),
         binding: var_name.clone(),
         expr: last_expr,
     });
